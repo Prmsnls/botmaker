@@ -60,7 +60,7 @@ function getApiTypeForProvider(provider: string): string {
     case 'anthropic':
       return 'anthropic-messages';
     case 'google':
-      return 'google-gemini';
+      return 'google-generative-ai';
     case 'venice':
     case 'openrouter':
       return 'openai-completions'; // OpenAI-compatible APIs

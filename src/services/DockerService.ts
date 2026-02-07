@@ -45,7 +45,9 @@ export class DockerService {
         Env: [
           ...config.environment,
           `OPENCLAW_STATE_DIR=/app/botdata`,
-          `OPENCLAW_GATEWAY_TOKEN=${config.gatewayToken}`,
+          `CLAWDBOT_GATEWAY_TOKEN=${config.gatewayToken}`,
++         `CLAWDBOT_CONFIG_PATH=/app/botdata/openclaw.json`,
++         `CLAWDBOT_STATE_DIR=/app/botdata`,
         ],
         ExposedPorts: {
           [`${config.port}/tcp`]: {}
