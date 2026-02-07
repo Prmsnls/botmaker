@@ -31,6 +31,7 @@ import {
   addProxyKey,
   deleteProxyKey,
   getProxyHealth,
+  generateBotLitellmKey,
   type AddKeyInput,
 } from './proxy/client.js';
 
@@ -316,6 +317,26 @@ export async function buildServer(): Promise<FastifyInstance> {
       if (proxyConfig) {
         const registration = await registerBotWithProxy(proxyConfig, bot.id, bot.hostname, body.tags);
         proxyToken = registration.token;
+      }
+
+      // Generate LiteLLM bot key if using LiteLLM provider
+      if (primaryProvider.providerId === 'litellm' && config.litellmUrl && config.litellmMasterKey) {
+        try {
+          const litellmApiKey = await generateBotLitellmKey({
+            baseUrl: config.litellmUrl,
+            masterKey: config.litellmMasterKey,
+            botId: bot.id,
+            hostname: bot.hostname,
+            maxBudgetUsd: config.litellmDefaultBudget,
+            models: [primaryProvider.model],
+          });
+
+          writeSecret(bot.hostname, 'LITELLM_API_KEY', litellmApiKey);
+          server.log.info({ botId: bot.id, hostname: bot.hostname, model: primaryProvider.model }, 'Generated LiteLLM bot key');
+        } catch (err) {
+          server.log.error({ err, botId: bot.id }, 'Failed to generate LiteLLM bot key');
+          throw new Error(`Failed to generate LiteLLM API key: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        }
       }
 
       for (const channel of body.channels) {

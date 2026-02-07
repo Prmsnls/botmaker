@@ -63,7 +63,7 @@ export const VENDOR_CONFIGS: Record<string, VendorConfig> = {
     authFormat: (key) => `Bearer ${key}`,
   },
   litellm: {
-    host: 'localhost', // Change to your LiteLLM proxy host
+    host: 'llm.openputer.com',
     basePath: '/v1',
     authHeader: 'Authorization',
     authFormat: (key) => `Bearer ${key}`,

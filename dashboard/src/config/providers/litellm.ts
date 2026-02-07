@@ -3,7 +3,7 @@ import type { ProviderConfig } from './types';
 export const litellm: ProviderConfig = {
   id: 'litellm',
   label: 'LiteLLM',
-  baseUrl: 'http://localhost:4000/v1', // Default LiteLLM proxy URL
+  baseUrl: 'https://llm.openputer.com/v1',
   keyHint: 'sk-...',
   defaultModel: 'gpt-5.2',
   models: [

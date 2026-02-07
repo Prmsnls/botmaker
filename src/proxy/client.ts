@@ -178,13 +178,13 @@ export async function getProxyHealth(
 }
 
 /**
- * Generate a tenant-specific LiteLLM key with budget and model restrictions
+ * Generate a bot-specific LiteLLM key with budget and model restrictions
  */
-export async function generateTenantLitellmKey(opts: {
+export async function generateBotLitellmKey(opts: {
   baseUrl: string;
   masterKey: string;
-  tenantId: string;
-  slug: string;
+  botId: string;
+  hostname: string;
   maxBudgetUsd: number;
   models: string[];
 }): Promise<string> {
@@ -196,13 +196,13 @@ export async function generateTenantLitellmKey(opts: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      key_alias: `tenant:${opts.tenantId}`,
-      user_id: opts.tenantId,
+      key_alias: `bot:${opts.hostname}`,
+      user_id: opts.botId,
       max_budget: opts.maxBudgetUsd,
       models: opts.models,
       metadata: {
-        tenant_id: opts.tenantId,
-        slug: opts.slug,
+        bot_id: opts.botId,
+        hostname: opts.hostname,
       },
     }),
   });
