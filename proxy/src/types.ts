@@ -62,4 +62,10 @@ export const VENDOR_CONFIGS: Record<string, VendorConfig> = {
     authHeader: 'Authorization',
     authFormat: (key) => `Bearer ${key}`,
   },
+  litellm: {
+    host: 'localhost', // Change to your LiteLLM proxy host
+    basePath: '/v1',
+    authHeader: 'Authorization',
+    authFormat: (key) => `Bearer ${key}`,
+  },
 };

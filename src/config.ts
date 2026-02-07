@@ -37,6 +37,12 @@ export interface AppConfig {
   adminPassword: string;
   /** Session token expiry in milliseconds (default 24 hours) */
   sessionExpiryMs: number;
+  /** LiteLLM proxy URL (optional) */
+  litellmUrl: string | null;
+  /** LiteLLM master key for generating tenant keys (optional) */
+  litellmMasterKey: string | null;
+  /** Default budget per bot in USD (for LiteLLM) */
+  litellmDefaultBudget: number;
 }
 
 function getEnvOrDefault(key: string, defaultValue: string): string {
@@ -82,6 +88,11 @@ export function getConfig(): AppConfig {
     throw new Error('ADMIN_PASSWORD must be at least 12 characters');
   }
 
+  // LiteLLM master key can come from file or env var
+  const litellmMasterKey = readSecretFile(process.env.LITELLM_MASTER_KEY_FILE)
+    ?? process.env.LITELLM_MASTER_KEY
+    ?? null;
+
   return {
     port: getEnvIntOrDefault('PORT', 7100),
     host: getEnvOrDefault('HOST', '0.0.0.0'),
@@ -96,6 +107,9 @@ export function getConfig(): AppConfig {
     proxyAdminToken,
     adminPassword,
     sessionExpiryMs: getEnvIntOrDefault('SESSION_EXPIRY_MS', 24 * 60 * 60 * 1000),
+    litellmUrl: process.env.LITELLM_URL ?? null,
+    litellmMasterKey,
+    litellmDefaultBudget: getEnvIntOrDefault('LITELLM_DEFAULT_BUDGET_USD', 10),
   };
 }
 
