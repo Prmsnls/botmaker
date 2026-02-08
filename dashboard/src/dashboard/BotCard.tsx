@@ -89,7 +89,6 @@ export function BotCard({ bot, onStart, onStop, onDelete, loading }: BotCardProp
             port={bot.port}
             disabled={isStarting}
             token={bot.gateway_token || undefined}
-            botHostname={bot.hostname}
           />
         </div>
       )}

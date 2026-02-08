@@ -5,7 +5,6 @@ interface BotLinkProps {
   hostname?: string;
   disabled?: boolean;
   token?: string;
-  botHostname?: string;
 }
 
 /**
@@ -26,20 +25,11 @@ function getLanHost(fallback?: string): string {
   return host;
 }
 
-export function BotLink({ port, hostname, disabled, token, botHostname }: BotLinkProps) {
+export function BotLink({ port, hostname, disabled, token }: BotLinkProps) {
   const host = getLanHost(hostname);
 
-  // Use subdomain format if botHostname is provided
-  // Format: botid.host instead of host:port
-  let baseUrl: string;
-  if (botHostname) {
-    // For localhost, use botid.localhost (works natively in browsers)
-    // For other hosts, use botid.host format
-    baseUrl = `http://${botHostname}.${host}/`;
-  } else {
-    // Fallback to port-based URL
-    baseUrl = `http://${host}:${port}/`;
-  }
+  // Use port-based URL (works without reverse proxy setup)
+  const baseUrl = `http://${host}:${port}/`;
 
   const url = token ? `${baseUrl}?token=${encodeURIComponent(token)}` : baseUrl;
 
