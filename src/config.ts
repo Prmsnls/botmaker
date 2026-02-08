@@ -41,6 +41,8 @@ export interface AppConfig {
   litellmBaseUrl: string | null;
   /** LiteLLM master key for /key/generate (optional) */
   litellmMasterKey: string | null;
+  /** Base domain for subdomain routing */
+  baseDomain: string;
 }
 
 function getEnvOrDefault(key: string, defaultValue: string): string {
@@ -102,6 +104,7 @@ export function getConfig(): AppConfig {
     sessionExpiryMs: getEnvIntOrDefault('SESSION_EXPIRY_MS', 24 * 60 * 60 * 1000),
     litellmBaseUrl: process.env.LITELLM_BASE_URL ?? '',
     litellmMasterKey: process.env.LLM_MASTER_KEY ?? '',
+    baseDomain: 'localhost',
   };
 }
 

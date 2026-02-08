@@ -1,35 +1,15 @@
 import './BotLink.css';
 
 interface BotLinkProps {
-  port: number;
-  hostname?: string;
+  botHostname: string;
   disabled?: boolean;
   token?: string;
 }
 
-/**
- * Get the LAN IP from current page URL.
- * Falls back to provided hostname or window.location.hostname.
- */
-function getLanHost(fallback?: string): string {
-  const host = window.location.hostname;
-  // If we're on a LAN IP, use it
-  if (/^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/.test(host)) {
-    return host;
-  }
-  // If we have a fallback, use it
-  if (fallback) {
-    return fallback;
-  }
-  // Otherwise use whatever hostname we're on
-  return host;
-}
-
-export function BotLink({ port, hostname, disabled, token }: BotLinkProps) {
-  const host = getLanHost(hostname);
-
-  // Use port-based URL (works without reverse proxy setup)
-  const baseUrl = `http://${host}:${port}/`;
+export function BotLink({ botHostname, disabled, token }: BotLinkProps) {
+  // Build subdomain URL: botHostname.currentDomain:currentPort
+  const { hostname, port: dashPort, protocol } = window.location;
+  const baseUrl = `${protocol}//${botHostname}.${hostname}${dashPort ? `:${dashPort}` : ''}/`;
 
   const url = token ? `${baseUrl}?token=${encodeURIComponent(token)}` : baseUrl;
 

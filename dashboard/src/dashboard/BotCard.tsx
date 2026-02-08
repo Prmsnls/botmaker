@@ -86,7 +86,7 @@ export function BotCard({ bot, onStart, onStop, onDelete, loading }: BotCardProp
       {bot.port && (isRunning || isStarting) && (
         <div className="bot-card-link">
           <BotLink
-            port={bot.port}
+            botHostname={bot.hostname}
             disabled={isStarting}
             token={bot.gateway_token || undefined}
           />

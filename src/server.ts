@@ -23,6 +23,8 @@ import { writeSecret, deleteBotSecrets } from './secrets/manager.js';
 import { DockerService } from './services/DockerService.js';
 import { ReconciliationService } from './services/ReconciliationService.js';
 import { ContainerError } from './services/docker-errors.js';
+import { extractBotHostname } from './services/subdomain.js';
+import { proxyToBot } from './services/BotProxyService.js';
 import {
   getProxyConfig,
   registerBotWithProxy,
@@ -138,6 +140,41 @@ export async function buildServer(): Promise<FastifyInstance> {
 
   const server = Fastify({
     logger: true,
+  });
+
+  // Subdomain-based bot proxy — must be registered before all other hooks
+  // so that proxied requests bypass auth, rate-limiting, and helmet.
+  server.addHook('onRequest', async (request, reply) => {
+    const botHostname = extractBotHostname(request.headers.host, config.baseDomain);
+    if (!botHostname) return; // bare domain → normal dashboard / API routes
+
+    const bot = getBotByHostname(botHostname);
+    if (!bot) {
+      reply.hijack();
+      reply.raw.writeHead(404, { 'Content-Type': 'application/json' });
+      reply.raw.end(JSON.stringify({ error: `Bot '${botHostname}' not found` }));
+      return;
+    }
+
+    if (bot.status !== 'running' || !bot.port) {
+      reply.hijack();
+      reply.raw.writeHead(503, { 'Content-Type': 'application/json' });
+      reply.raw.end(JSON.stringify({ error: `Bot '${botHostname}' is not running` }));
+      return;
+    }
+
+    reply.hijack();
+    try {
+      await proxyToBot(request, reply, bot.port, `botmaker-${botHostname}`);
+    } catch (err) {
+      server.log.error({ err, botHostname }, 'Bot proxy error');
+      if (!reply.raw.headersSent) {
+        reply.raw.writeHead(502, { 'Content-Type': 'application/json' });
+        reply.raw.end(JSON.stringify({ error: 'Failed to proxy to bot' }));
+      } else {
+        reply.raw.end();
+      }
+    }
   });
 
   // Register security headers
@@ -410,7 +447,7 @@ export async function buildServer(): Promise<FastifyInstance> {
         hostSecretsPath,
         hostSandboxPath,
         gatewayToken,
-        networkName: proxyConfig && !isLitellm ? 'bm-internal' : undefined,
+        networkName: 'bm-internal',
       });
 
       const db = getDb();
