@@ -4,6 +4,7 @@ interface BotLinkProps {
   port: number;
   hostname?: string;
   disabled?: boolean;
+  token?: string;
 }
 
 /**
@@ -24,9 +25,10 @@ function getLanHost(fallback?: string): string {
   return host;
 }
 
-export function BotLink({ port, hostname, disabled }: BotLinkProps) {
+export function BotLink({ port, hostname, disabled, token }: BotLinkProps) {
   const host = getLanHost(hostname);
-  const url = `http://${host}:${port}/`;
+  const baseUrl = `http://${host}:${port}/`;
+  const url = token ? `${baseUrl}?token=${encodeURIComponent(token)}` : baseUrl;
 
   if (disabled) {
     return (
