@@ -61,6 +61,7 @@ function getApiTypeForProvider(provider: string): string {
       return 'anthropic-messages';
     case 'google':
       return 'google-generative-ai';
+    case 'litellm':
     case 'venice':
     case 'openrouter':
       return 'openai-completions'; // OpenAI-compatible APIs

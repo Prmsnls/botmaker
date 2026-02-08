@@ -33,6 +33,7 @@ import {
   getProxyHealth,
   type AddKeyInput,
 } from './proxy/client.js';
+import { getLitellmConfig, generateTenantLitellmKey } from './litellm/client.js';
 
 const docker = new DockerService();
 
@@ -310,10 +311,11 @@ export async function buildServer(): Promise<FastifyInstance> {
     // Check if proxy is configured
     const proxyConfig = getProxyConfig();
     let proxyToken: string | null = null;
+    const isLitellm = primaryProvider.providerId === 'litellm';
 
     try {
-      // Register with proxy if configured
-      if (proxyConfig) {
+      // Register with proxy if configured (skip for litellm — it manages its own keys)
+      if (proxyConfig && !isLitellm) {
         const registration = await registerBotWithProxy(proxyConfig, bot.id, bot.hostname, body.tags);
         proxyToken = registration.token;
       }
@@ -330,13 +332,34 @@ export async function buildServer(): Promise<FastifyInstance> {
         writeSecret(bot.hostname, tokenName, channel.token);
       }
 
-      // Build proxy config for workspace if using proxy
-      const workspaceProxyConfig = proxyConfig && proxyToken
-        ? {
-            baseUrl: `http://keyring-proxy:9101/v1/${primaryProvider.providerId}`,
-            token: proxyToken,
-          }
-        : undefined;
+      // Build proxy config for workspace
+      let workspaceProxyConfig: { baseUrl: string; token: string } | undefined;
+
+      if (isLitellm) {
+        // LiteLLM: generate a per-tenant key and point directly at the LiteLLM server
+        const litellmConfig = getLitellmConfig();
+        if (!litellmConfig) {
+          throw new Error('LiteLLM is not configured. Set LITELLM_BASE_URL and LLM_MASTER_KEY environment variables.');
+        }
+        const litellmKey = await generateTenantLitellmKey({
+          baseUrl: litellmConfig.baseUrl,
+          masterKey: litellmConfig.masterKey,
+          tenantId: bot.id,
+          slug: bot.hostname,
+          maxBudgetUsd: 10,
+          models: [primaryProvider.model],
+        });
+        workspaceProxyConfig = {
+          baseUrl: `${litellmConfig.baseUrl}/v1`,
+          token: litellmKey,
+        };
+      } else if (proxyConfig && proxyToken) {
+        // Other providers: use the keyring proxy
+        workspaceProxyConfig = {
+          baseUrl: `http://keyring-proxy:9101/v1/${primaryProvider.providerId}`,
+          token: proxyToken,
+        };
+      }
 
       // Create workspace
       createBotWorkspace(config.dataDir, {
@@ -387,7 +410,7 @@ export async function buildServer(): Promise<FastifyInstance> {
         hostSecretsPath,
         hostSandboxPath,
         gatewayToken,
-        networkName: proxyConfig ? 'bm-internal' : undefined,
+        networkName: proxyConfig && !isLitellm ? 'bm-internal' : undefined,
       });
 
       const db = getDb();

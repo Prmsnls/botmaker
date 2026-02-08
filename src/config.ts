@@ -37,6 +37,10 @@ export interface AppConfig {
   adminPassword: string;
   /** Session token expiry in milliseconds (default 24 hours) */
   sessionExpiryMs: number;
+  /** LiteLLM proxy base URL (optional) */
+  litellmBaseUrl: string | null;
+  /** LiteLLM master key for /key/generate (optional) */
+  litellmMasterKey: string | null;
 }
 
 function getEnvOrDefault(key: string, defaultValue: string): string {
@@ -96,6 +100,8 @@ export function getConfig(): AppConfig {
     proxyAdminToken,
     adminPassword,
     sessionExpiryMs: getEnvIntOrDefault('SESSION_EXPIRY_MS', 24 * 60 * 60 * 1000),
+    litellmBaseUrl: process.env.LITELLM_BASE_URL ?? '',
+    litellmMasterKey: process.env.LLM_MASTER_KEY ?? '',
   };
 }
 
