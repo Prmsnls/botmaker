@@ -24,7 +24,7 @@ import { DockerService } from './services/DockerService.js';
 import { ReconciliationService } from './services/ReconciliationService.js';
 import { ContainerError } from './services/docker-errors.js';
 import { extractBotHostname } from './services/subdomain.js';
-import { proxyToBot } from './services/BotProxyService.js';
+import { proxyToBot, proxyWebSocketToBot } from './services/BotProxyService.js';
 import {
   getProxyConfig,
   registerBotWithProxy,
@@ -175,6 +175,27 @@ export async function buildServer(): Promise<FastifyInstance> {
         reply.raw.end();
       }
     }
+  });
+
+  // WebSocket upgrade proxy — forward ws:// connections to bot subdomains
+  server.server.on('upgrade', (req, socket, head) => {
+    const botHostname = extractBotHostname(req.headers.host, config.baseDomain);
+    if (!botHostname) return;
+
+    const bot = getBotByHostname(botHostname);
+    if (!bot || bot.status !== 'running' || !bot.port) {
+      socket.destroy();
+      return;
+    }
+
+    proxyWebSocketToBot(
+      req,
+      socket as import('net').Socket,
+      head,
+      bot.port,
+      `botmaker-${botHostname}`,
+      bot.gateway_token ?? undefined,
+    );
   });
 
   // Register security headers

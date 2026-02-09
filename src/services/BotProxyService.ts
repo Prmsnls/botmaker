@@ -7,7 +7,8 @@
  */
 
 import http from 'node:http';
-import type { ServerResponse } from 'node:http';
+import net from 'node:net';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 
 interface FlushableResponse extends ServerResponse {
@@ -117,4 +118,68 @@ export async function proxyToBot(
     // Works because we intercept in onRequest before Fastify parses the body.
     request.raw.pipe(proxyReq);
   });
+}
+
+/**
+ * Proxy a WebSocket upgrade request to a bot container.
+ * Forwards the HTTP upgrade handshake, then pipes the two raw
+ * TCP sockets together bidirectionally.
+ */
+export function proxyWebSocketToBot(
+  req: IncomingMessage,
+  socket: net.Socket,
+  head: Buffer,
+  botPort: number,
+  proxyHost: string,
+  gatewayToken?: string,
+): void {
+  let upstreamPath = req.url ?? '/';
+  if (gatewayToken) {
+    const sep = upstreamPath.includes('?') ? '&' : '?';
+    upstreamPath = `${upstreamPath}${sep}token=${encodeURIComponent(gatewayToken)}`;
+  }
+
+  const upstreamHeaders: Record<string, string | string[] | undefined> = {};
+  for (const [key, value] of Object.entries(req.headers)) {
+    if (value !== undefined) {
+      upstreamHeaders[key] = value;
+    }
+  }
+  upstreamHeaders['host'] = `${proxyHost}:${botPort}`;
+
+  const proxyReq = http.request({
+    hostname: proxyHost,
+    port: botPort,
+    path: upstreamPath,
+    method: 'GET',
+    headers: upstreamHeaders,
+    timeout: REQUEST_TIMEOUT_MS,
+  });
+
+  proxyReq.on('upgrade', (_proxyRes, proxySocket, proxyHead) => {
+    // Forward the 101 response back to the client
+    socket.write(
+      'HTTP/1.1 101 Switching Protocols\r\n' +
+        'Upgrade: websocket\r\n' +
+        'Connection: Upgrade\r\n' +
+        `Sec-WebSocket-Accept: ${_proxyRes.headers['sec-websocket-accept']}\r\n` +
+        '\r\n',
+    );
+    if (proxyHead.length > 0) socket.write(proxyHead);
+    if (head.length > 0) proxySocket.write(head);
+
+    proxySocket.pipe(socket);
+    socket.pipe(proxySocket);
+
+    proxySocket.on('error', () => socket.destroy());
+    socket.on('error', () => proxySocket.destroy());
+  });
+
+  proxyReq.on('error', () => socket.destroy());
+  proxyReq.on('timeout', () => {
+    proxyReq.destroy();
+    socket.destroy();
+  });
+
+  proxyReq.end();
 }
