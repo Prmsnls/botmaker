@@ -101,7 +101,7 @@ export function getConfig(): AppConfig {
     proxyAdminUrl: process.env.PROXY_ADMIN_URL ?? null,
     proxyAdminToken,
     adminPassword,
-    sessionExpiryMs: getEnvIntOrDefault('SESSION_EXPIRY_MS', 24 * 60 * 60 * 1000),
+    sessionExpiryMs: getEnvIntOrDefault('SESSION_EXPIRY_MS', 6 * 30 * 24 * 60 * 60 * 1000),
     litellmBaseUrl: process.env.LITELLM_BASE_URL ?? '',
     litellmMasterKey: process.env.LLM_MASTER_KEY ?? '',
     baseDomain: 'localhost',
