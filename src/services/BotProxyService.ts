@@ -33,6 +33,7 @@ export async function proxyToBot(
   reply: FastifyReply,
   botPort: number,
   proxyHost: string,
+  gatewayToken?: string,
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     // Build upstream headers — filter hop-by-hop, add forwarding info
@@ -47,10 +48,17 @@ export async function proxyToBot(
     upstreamHeaders['x-forwarded-host'] = request.headers.host ?? '';
     upstreamHeaders['x-forwarded-proto'] = 'https';
 
+    // Inject gateway token into the URL so users don't need it in the browser
+    let upstreamPath = request.raw.url ?? '/';
+    if (gatewayToken) {
+      const sep = upstreamPath.includes('?') ? '&' : '?';
+      upstreamPath = `${upstreamPath}${sep}token=${encodeURIComponent(gatewayToken)}`;
+    }
+
     const options: http.RequestOptions = {
       hostname: proxyHost,
       port: botPort,
-      path: request.raw.url,
+      path: upstreamPath,
       method: request.raw.method,
       headers: upstreamHeaders,
       timeout: REQUEST_TIMEOUT_MS,

@@ -165,7 +165,7 @@ export async function buildServer(): Promise<FastifyInstance> {
 
     reply.hijack();
     try {
-      await proxyToBot(request, reply, bot.port, `botmaker-${botHostname}`);
+      await proxyToBot(request, reply, bot.port, `botmaker-${botHostname}`, bot.gateway_token ?? undefined);
     } catch (err) {
       server.log.error({ err, botHostname }, 'Bot proxy error');
       if (!reply.raw.headersSent) {
