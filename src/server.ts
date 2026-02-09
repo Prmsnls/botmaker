@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 
-import { getConfig } from './config.js';
+import { getConfig, BOT_INTERNAL_PORT } from './config.js';
 import { initDb } from './db/index.js';
 import {
   createBot,
@@ -165,7 +165,7 @@ export async function buildServer(): Promise<FastifyInstance> {
 
     reply.hijack();
     try {
-      await proxyToBot(request, reply, bot.port, `botmaker-${botHostname}`, bot.gateway_token ?? undefined);
+      await proxyToBot(request, reply, BOT_INTERNAL_PORT, `botmaker-${botHostname}`, bot.gateway_token ?? undefined);
     } catch (err) {
       server.log.error({ err, botHostname }, 'Bot proxy error');
       if (!reply.raw.headersSent) {
@@ -192,7 +192,7 @@ export async function buildServer(): Promise<FastifyInstance> {
       req,
       socket as import('net').Socket,
       head,
-      bot.port,
+      BOT_INTERNAL_PORT,
       `botmaker-${botHostname}`,
       bot.gateway_token ?? undefined,
     );
@@ -448,7 +448,7 @@ export async function buildServer(): Promise<FastifyInstance> {
         `BOT_NAME=${body.name}`,
         `AI_PROVIDER=${primaryProvider.providerId}`,
         `AI_MODEL=${primaryProvider.model}`,
-        `PORT=${port}`,
+        `PORT=${BOT_INTERNAL_PORT}`,
       ];
 
       // Add channel tokens

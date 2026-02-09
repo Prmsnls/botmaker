@@ -6,6 +6,7 @@
 
 import { mkdirSync, writeFileSync, chmodSync, chownSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { BOT_INTERNAL_PORT } from '../config.js';
 
 /**
  * Try to change file ownership, but gracefully skip if not permitted.
@@ -102,7 +103,7 @@ function generateOpenclawConfig(config: BotWorkspaceConfig): object {
   return {
     gateway: {
       mode: 'local',
-      port: config.port,
+      port: BOT_INTERNAL_PORT,
       bind: 'lan',
       auth: {
         mode: 'token',

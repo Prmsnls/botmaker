@@ -8,6 +8,7 @@
 import Docker from 'dockerode';
 import type { ContainerStatus, ContainerInfo, ContainerConfig, ContainerStats } from '../types/container.js';
 import { wrapDockerError } from './docker-errors.js';
+import { BOT_INTERNAL_PORT } from '../config.js';
 
 /** Label used to identify BotMaker-managed containers */
 const LABEL_MANAGED = 'botmaker.managed';
@@ -50,7 +51,7 @@ export class DockerService {
           `CLAWDBOT_STATE_DIR=/app/botdata`,
         ],
         ExposedPorts: {
-          [`${config.port}/tcp`]: {}
+          [`${BOT_INTERNAL_PORT}/tcp`]: {}
         },
         Labels: {
           [LABEL_MANAGED]: 'true',
@@ -58,7 +59,7 @@ export class DockerService {
           [LABEL_BOT_HOSTNAME]: hostname
         },
         Healthcheck: {
-          Test: ['CMD', 'curl', '-sf', `http://localhost:${config.port}/`],
+          Test: ['CMD', 'curl', '-sf', `http://localhost:${BOT_INTERNAL_PORT}/`],
           Interval: 2_000_000_000,  // 2s in nanoseconds
           Timeout: 3_000_000_000,   // 3s in nanoseconds
           Retries: 30,
@@ -71,7 +72,7 @@ export class DockerService {
             `${config.hostSandboxPath}:/app/workspace:rw`
           ],
           PortBindings: {
-            [`${config.port}/tcp`]: [{ HostPort: String(config.port) }]
+            [`${BOT_INTERNAL_PORT}/tcp`]: [{ HostPort: String(config.port) }]
           },
           RestartPolicy: {
             Name: 'unless-stopped'
