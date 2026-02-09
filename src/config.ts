@@ -70,6 +70,13 @@ function readSecretFile(path: string | undefined): string | null {
  * Reads from environment variables with defaults.
  */
 
+/**
+ * Fixed port that all bot containers listen on internally.
+ * Each container has its own network namespace, so there's no conflict.
+ * The unique host port (from botPortStart) is only used for host-level port mapping.
+ */
+export const BOT_INTERNAL_PORT = 3000;
+
 export function getConfig(): AppConfig {
   // Proxy admin token can come from file or env var
   const proxyAdminToken = readSecretFile(process.env.PROXY_ADMIN_TOKEN_FILE)
