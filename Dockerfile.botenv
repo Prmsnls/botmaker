@@ -29,5 +29,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iproute2 netcat-openbsd dnsutils \
  && rm -rf /var/lib/apt/lists/*
 
+# Create clawdbot wrapper so CLI commands work by name
+RUN printf '#!/bin/sh\nnode /app/dist/index.js "$@"\n' > /usr/local/bin/clawdbot && \
+    chmod +x /usr/local/bin/clawdbot
+
 # Switch back to non-root user
 USER node

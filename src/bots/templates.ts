@@ -125,6 +125,9 @@ function generateOpenclawConfig(config: BotWorkspaceConfig): object {
         workspace: '/app/botdata/workspace',
       },
     },
+    tools: {
+      profile: 'full',
+    },
     ...(modelsConfig && { models: modelsConfig }),
   };
 }
