@@ -1,8 +1,8 @@
 import type { ProviderConfig } from './types';
 
 export const litellm: ProviderConfig = {
-  id: 'litellm',
-  label: 'LiteLLM',
+  id: 'openputer',
+  label: 'OpenPuter',
   baseUrl: '',
   defaultModel: 'openputer-auto',
   models: [

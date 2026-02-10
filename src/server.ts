@@ -369,11 +369,11 @@ export async function buildServer(): Promise<FastifyInstance> {
     // Check if proxy is configured
     const proxyConfig = getProxyConfig();
     let proxyToken: string | null = null;
-    const isLitellm = primaryProvider.providerId === 'litellm';
+    const isOpenputer = primaryProvider.providerId === 'openputer';
 
     try {
-      // Register with proxy if configured (skip for litellm — it manages its own keys)
-      if (proxyConfig && !isLitellm) {
+      // Register with proxy if configured (skip for openputer — it manages its own keys)
+      if (proxyConfig && !isOpenputer) {
         const registration = await registerBotWithProxy(proxyConfig, bot.id, bot.hostname, body.tags);
         proxyToken = registration.token;
       }
@@ -393,8 +393,8 @@ export async function buildServer(): Promise<FastifyInstance> {
       // Build proxy config for workspace
       let workspaceProxyConfig: { baseUrl: string; token: string } | undefined;
 
-      if (isLitellm) {
-        // LiteLLM: generate a per-tenant key and point directly at the LiteLLM server
+      if (isOpenputer) {
+        // OpenPuter: generate a per-tenant key and point directly at the OpenPuter server
         const litellmConfig = getLitellmConfig();
         if (!litellmConfig) {
           throw new Error('LiteLLM is not configured. Set LITELLM_BASE_URL and LLM_MASTER_KEY environment variables.');
