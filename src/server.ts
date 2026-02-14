@@ -165,7 +165,14 @@ export async function buildServer(): Promise<FastifyInstance> {
 
     reply.hijack();
     try {
-      await proxyToBot(request, reply, BOT_INTERNAL_PORT, `botmaker-${botHostname}`, bot.gateway_token ?? undefined);
+      // Determine proxy target
+      // If running in Docker (/.dockerenv exists), use container networking.
+      // If running on host (dev mode), use localhost and mapped port.
+      const isDocker = existsSync('/.dockerenv');
+      const targetHost = isDocker ? `botmaker-${botHostname}` : '127.0.0.1';
+      const targetPort = isDocker ? BOT_INTERNAL_PORT : bot.port;
+
+      await proxyToBot(request, reply, targetPort, targetHost, bot.gateway_token ?? undefined);
     } catch (err) {
       server.log.error({ err, botHostname }, 'Bot proxy error');
       if (!reply.raw.headersSent) {
@@ -188,12 +195,17 @@ export async function buildServer(): Promise<FastifyInstance> {
       return;
     }
 
+    // Determine proxy target
+    const isDocker = existsSync('/.dockerenv');
+    const targetHost = isDocker ? `botmaker-${botHostname}` : '127.0.0.1';
+    const targetPort = isDocker ? BOT_INTERNAL_PORT : bot.port;
+
     proxyWebSocketToBot(
       req,
       socket as import('net').Socket,
       head,
-      BOT_INTERNAL_PORT,
-      `botmaker-${botHostname}`,
+      targetPort,
+      targetHost,
       bot.gateway_token ?? undefined,
     );
   });

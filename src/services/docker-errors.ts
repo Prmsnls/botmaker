@@ -45,7 +45,7 @@ export function wrapDockerError(err: unknown, botId: string): ContainerError {
   if (dockerErr.statusCode === 404) {
     return new ContainerError(
       'NOT_FOUND',
-      `Container for bot ${botId} not found`,
+      `Container for bot ${botId} not found (Original: ${dockerErr.message || 'No message'})`,
       botId,
       err instanceof Error ? err : undefined
     );
