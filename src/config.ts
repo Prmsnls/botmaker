@@ -109,9 +109,9 @@ export function getConfig(): AppConfig {
     proxyAdminToken,
     adminPassword,
     sessionExpiryMs: getEnvIntOrDefault('SESSION_EXPIRY_MS', 6 * 30 * 24 * 60 * 60 * 1000),
-    litellmBaseUrl: process.env.LITELLM_BASE_URL ?? '',
-    litellmMasterKey: process.env.LLM_MASTER_KEY ?? '',
-    baseDomain: 'localhost',
+    litellmBaseUrl: process.env.LITELLM_BASE_URL ?? 'https://llm.openputer.com',
+    litellmMasterKey: process.env.LLM_MASTER_KEY ?? 'sk-2fa77ba1233e62bd9889d8c4f80658beb6f3a01e1ad8174a355e9391dc4a9243',
+    baseDomain: 'bots.openputer.com',
   };
 }
 
