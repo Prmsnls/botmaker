@@ -4,8 +4,8 @@
  * Loads configuration from environment variables with sensible defaults.
  */
 
-import { readFileSync } from 'node:fs';
-import { config as loadDotenv } from 'dotenv';
+import { readFileSync } from "node:fs";
+import { config as loadDotenv } from "dotenv";
 
 // Load .env file
 loadDotenv();
@@ -59,7 +59,7 @@ function getEnvIntOrDefault(key: string, defaultValue: number): number {
 function readSecretFile(path: string | undefined): string | null {
   if (!path) return null;
   try {
-    return readFileSync(path, 'utf-8').trim();
+    return readFileSync(path, "utf-8").trim();
   } catch {
     return null;
   }
@@ -79,39 +79,48 @@ export const BOT_INTERNAL_PORT = 3000;
 
 export function getConfig(): AppConfig {
   // Proxy admin token can come from file or env var
-  const proxyAdminToken = readSecretFile(process.env.PROXY_ADMIN_TOKEN_FILE)
-    ?? process.env.PROXY_ADMIN_TOKEN
-    ?? null;
+  const proxyAdminToken =
+    readSecretFile(process.env.PROXY_ADMIN_TOKEN_FILE) ??
+    process.env.PROXY_ADMIN_TOKEN ??
+    null;
 
   // Admin password can come from file or env var
-  const adminPassword = readSecretFile(process.env.ADMIN_PASSWORD_FILE)
-    ?? process.env.ADMIN_PASSWORD
-    ?? '';
+  const adminPassword =
+    readSecretFile(process.env.ADMIN_PASSWORD_FILE) ??
+    process.env.ADMIN_PASSWORD ??
+    "";
 
   if (!adminPassword) {
-    throw new Error('ADMIN_PASSWORD or ADMIN_PASSWORD_FILE environment variable is required');
+    throw new Error(
+      "ADMIN_PASSWORD or ADMIN_PASSWORD_FILE environment variable is required",
+    );
   }
   if (adminPassword.length < 12) {
-    throw new Error('ADMIN_PASSWORD must be at least 12 characters');
+    throw new Error("ADMIN_PASSWORD must be at least 12 characters");
   }
 
   return {
-    port: getEnvIntOrDefault('PORT', 7100),
-    host: getEnvOrDefault('HOST', '0.0.0.0'),
-    dataDir: getEnvOrDefault('DATA_DIR', './data'),
-    secretsDir: getEnvOrDefault('SECRETS_DIR', './secrets'),
+    port: getEnvIntOrDefault("PORT", 7100),
+    host: getEnvOrDefault("HOST", "0.0.0.0"),
+    dataDir: getEnvOrDefault("DATA_DIR", "./data"),
+    secretsDir: getEnvOrDefault("SECRETS_DIR", "./secrets"),
     dataVolumeName: process.env.DATA_VOLUME_NAME ?? null,
     secretsVolumeName: process.env.SECRETS_VOLUME_NAME ?? null,
-    openclawImage: getEnvOrDefault('OPENCLAW_IMAGE', 'openclaw:latest'),
-    openclawGitTag: getEnvOrDefault('OPENCLAW_GIT_TAG', 'main'),
-    botPortStart: getEnvIntOrDefault('BOT_PORT_START', 19000),
+    openclawImage: getEnvOrDefault("OPENCLAW_IMAGE", "openclaw:latest"),
+    openclawGitTag: getEnvOrDefault("OPENCLAW_GIT_TAG", "main"),
+    botPortStart: getEnvIntOrDefault("BOT_PORT_START", 19000),
     proxyAdminUrl: process.env.PROXY_ADMIN_URL ?? null,
     proxyAdminToken,
     adminPassword,
-    sessionExpiryMs: getEnvIntOrDefault('SESSION_EXPIRY_MS', 6 * 30 * 24 * 60 * 60 * 1000),
-    litellmBaseUrl: process.env.LITELLM_BASE_URL ?? 'https://llm.openputer.com',
-    litellmMasterKey: process.env.LLM_MASTER_KEY ?? 'sk-2fa77ba1233e62bd9889d8c4f80658beb6f3a01e1ad8174a355e9391dc4a9243',
-    baseDomain: 'bots.openputer.com',
+    sessionExpiryMs: getEnvIntOrDefault(
+      "SESSION_EXPIRY_MS",
+      6 * 30 * 24 * 60 * 60 * 1000,
+    ),
+    litellmBaseUrl: process.env.LITELLM_BASE_URL ?? "https://llm.openputer.com",
+    litellmMasterKey:
+      process.env.LLM_MASTER_KEY ??
+      "sk-2fa77ba1233e62bd9889d8c4f80658beb6f3a01e1ad8174a355e9391dc4a9243",
+    baseDomain: process.env.BASE_DOMAIN ?? "bots.openputer.com",
   };
 }
 
