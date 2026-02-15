@@ -21,6 +21,7 @@ function createDefaultState(): WizardState {
       sandbox: false,
       sandboxTimeout: 30,
       sessionScope: 'user',
+      deployToAkash: false,
     },
     providerConfigs: {},
     channelConfigs: {},
@@ -228,6 +229,7 @@ describe('buildCreateBotInput', () => {
         sandbox: false,
         sandboxTimeout: undefined,
         sessionScope: 'user',
+        deployToAkash: false,
       },
       tags: undefined,
     });

@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getDb } from '../db/index.js';
 import type { Bot, BotStatus } from '../types/bot.js';
 
+
 export interface CreateBotInput {
   name: string;
   hostname: string;
@@ -17,6 +18,11 @@ export interface CreateBotInput {
   port: number;
   gateway_token: string;
   tags?: string[];
+  is_akash_deployment?: boolean;
+  akash_dseq?: string;
+  akash_provider?: string;
+  akash_lease_status?: string;
+  akash_manifest?: string;
 }
 
 export interface UpdateBotInput {
@@ -30,6 +36,12 @@ export interface UpdateBotInput {
   gateway_token?: string | null;
   tags?: string[] | null;
   status?: BotStatus;
+  is_akash_deployment?: boolean;
+  akash_dseq?: string | null;
+  akash_provider?: string | null;
+  akash_lease_status?: string | null;
+  akash_manifest?: string | null;
+  akash_uri?: string | null;
 }
 
 /**
@@ -45,11 +57,25 @@ export function createBot(input: CreateBotInput): Bot {
   const tagsJson = input.tags && input.tags.length > 0 ? JSON.stringify(input.tags) : null;
 
   const stmt = db.prepare(`
-    INSERT INTO bots (id, name, hostname, ai_provider, model, channel_type, port, gateway_token, tags, status, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO bots (
+      id, name, hostname, ai_provider, model, channel_type, port, gateway_token, tags, status,
+      is_akash_deployment, akash_dseq, akash_provider, akash_lease_status, akash_manifest, akash_uri,
+      created_at, updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  stmt.run(id, input.name, input.hostname, input.ai_provider, input.model, input.channel_type, input.port, input.gateway_token, tagsJson, 'created', now, now);
+  stmt.run(
+    id, input.name, input.hostname, input.ai_provider, input.model, input.channel_type,
+    input.port, input.gateway_token, tagsJson, 'created',
+    input.is_akash_deployment ? 1 : 0,
+    input.akash_dseq || null,
+    input.akash_provider || null,
+    input.akash_lease_status || null,
+    input.akash_manifest || null,
+    null, // akash_uri initially null
+    now, now
+  );
 
   return {
     id,
@@ -63,6 +89,12 @@ export function createBot(input: CreateBotInput): Bot {
     gateway_token: input.gateway_token,
     tags: tagsJson,
     status: 'created',
+    is_akash_deployment: !!input.is_akash_deployment,
+    akash_dseq: input.akash_dseq || null,
+    akash_provider: input.akash_provider || null,
+    akash_lease_status: input.akash_lease_status || null,
+    akash_manifest: input.akash_manifest || null,
+    akash_uri: null,
     created_at: now,
     updated_at: now,
   };
@@ -77,8 +109,14 @@ export function createBot(input: CreateBotInput): Bot {
 export function getBot(id: string): Bot | null {
   const db = getDb();
   const stmt = db.prepare('SELECT * FROM bots WHERE id = ?');
-  const row = stmt.get(id) as Bot | undefined;
-  return row ?? null;
+  const row = stmt.get(id) as any; // Type assertion needed due to better-sqlite3 types
+
+  if (!row) return null;
+
+  return {
+    ...row,
+    is_akash_deployment: Boolean(row.is_akash_deployment), // Convert integer to boolean
+  };
 }
 
 /**
@@ -90,8 +128,14 @@ export function getBot(id: string): Bot | null {
 export function getBotByName(name: string): Bot | null {
   const db = getDb();
   const stmt = db.prepare('SELECT * FROM bots WHERE name = ?');
-  const row = stmt.get(name) as Bot | undefined;
-  return row ?? null;
+  const row = stmt.get(name) as any;
+
+  if (!row) return null;
+
+  return {
+    ...row,
+    is_akash_deployment: Boolean(row.is_akash_deployment),
+  };
 }
 
 /**
@@ -103,8 +147,14 @@ export function getBotByName(name: string): Bot | null {
 export function getBotByHostname(hostname: string): Bot | null {
   const db = getDb();
   const stmt = db.prepare('SELECT * FROM bots WHERE hostname = ?');
-  const row = stmt.get(hostname) as Bot | undefined;
-  return row ?? null;
+  const row = stmt.get(hostname) as any;
+
+  if (!row) return null;
+
+  return {
+    ...row,
+    is_akash_deployment: Boolean(row.is_akash_deployment),
+  };
 }
 
 /**
@@ -115,7 +165,12 @@ export function getBotByHostname(hostname: string): Bot | null {
 export function listBots(): Bot[] {
   const db = getDb();
   const stmt = db.prepare('SELECT * FROM bots ORDER BY created_at DESC');
-  return stmt.all() as Bot[];
+  const rows = stmt.all() as any[];
+
+  return rows.map(row => ({
+    ...row,
+    is_akash_deployment: Boolean(row.is_akash_deployment),
+  }));
 }
 
 /**
@@ -172,6 +227,32 @@ export function updateBot(id: string, input: UpdateBotInput): Bot | null {
   if (input.status !== undefined) {
     updates.push('status = ?');
     values.push(input.status);
+  }
+
+  // Akash fields
+  if (input.is_akash_deployment !== undefined) {
+    updates.push('is_akash_deployment = ?');
+    values.push(input.is_akash_deployment ? 1 : 0);
+  }
+  if (input.akash_dseq !== undefined) {
+    updates.push('akash_dseq = ?');
+    values.push(input.akash_dseq);
+  }
+  if (input.akash_provider !== undefined) {
+    updates.push('akash_provider = ?');
+    values.push(input.akash_provider);
+  }
+  if (input.akash_lease_status !== undefined) {
+    updates.push('akash_lease_status = ?');
+    values.push(input.akash_lease_status);
+  }
+  if (input.akash_manifest !== undefined) {
+    updates.push('akash_manifest = ?');
+    values.push(input.akash_manifest);
+  }
+  if (input.akash_uri !== undefined) {
+    updates.push('akash_uri = ?');
+    values.push(input.akash_uri);
   }
 
   values.push(id);

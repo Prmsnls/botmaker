@@ -47,6 +47,7 @@ const initialState: WizardState = {
     sandbox: false,
     sandboxTimeout: 30,
     sessionScope: 'user',
+    deployToAkash: false,
   },
   providerConfigs: {},
   channelConfigs: {},

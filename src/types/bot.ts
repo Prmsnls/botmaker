@@ -12,6 +12,12 @@ export interface Bot {
   gateway_token: string | null; // OpenClaw gateway authentication token
   tags: string | null;  // JSON array of API routing tags
   status: BotStatus;
+  is_akash_deployment?: boolean;
+  akash_dseq?: string | null;
+  akash_provider?: string | null;
+  akash_lease_status?: string | null;
+  akash_manifest?: string | null;
+  akash_uri?: string | null;
   created_at: string;   // ISO datetime
   updated_at: string;   // ISO datetime
 }

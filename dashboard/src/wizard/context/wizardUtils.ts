@@ -18,6 +18,7 @@ export interface WizardState {
     sandbox: boolean;
     sandboxTimeout: number;
     sessionScope: SessionScope;
+    deployToAkash: boolean;
   };
   providerConfigs: Record<string, { model?: string } | undefined>;
   channelConfigs: Record<string, { token: string } | undefined>;
@@ -112,6 +113,7 @@ export function buildCreateBotInput(state: WizardState): CreateBotInput {
       sandbox: state.features.sandbox,
       sandboxTimeout: state.features.sandbox ? state.features.sandboxTimeout : undefined,
       sessionScope: state.features.sessionScope,
+      deployToAkash: state.features.deployToAkash,
     },
     tags: state.routingTags.length > 0 ? state.routingTags : undefined,
   };

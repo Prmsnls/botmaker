@@ -74,4 +74,31 @@ export function runMigrations(db: Database.Database): void {
       );
     })();
   }
+  // Migration v5: Add Akash deployment fields
+  if (currentVersion < 5) {
+    db.transaction(() => {
+      // Add columns one by one as SQLite doesn't support multiple ADD COLUMN in one statement
+      try { db.exec('ALTER TABLE bots ADD COLUMN is_akash_deployment INTEGER DEFAULT 0'); } catch { }
+      try { db.exec('ALTER TABLE bots ADD COLUMN akash_dseq TEXT'); } catch { }
+      try { db.exec('ALTER TABLE bots ADD COLUMN akash_provider TEXT'); } catch { }
+      try { db.exec('ALTER TABLE bots ADD COLUMN akash_lease_status TEXT'); } catch { }
+      try { db.exec('ALTER TABLE bots ADD COLUMN akash_manifest TEXT'); } catch { }
+
+      db.prepare('INSERT INTO migrations (version, applied_at) VALUES (?, ?)').run(
+        5,
+        new Date().toISOString()
+      );
+    })();
+  }
+
+  // Migration v6: Add Akash URI
+  if (currentVersion < 6) {
+    db.transaction(() => {
+      try { db.exec('ALTER TABLE bots ADD COLUMN akash_uri TEXT'); } catch { }
+      db.prepare('INSERT INTO migrations (version, applied_at) VALUES (?, ?)').run(
+        6,
+        new Date().toISOString()
+      );
+    })();
+  }
 }

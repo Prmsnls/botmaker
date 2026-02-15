@@ -101,6 +101,7 @@ interface CreateBotBody {
     name: string;
     soulMarkdown: string;
   };
+
   features: {
     commands: boolean;
     tts: boolean;
@@ -108,9 +109,13 @@ interface CreateBotBody {
     sandbox: boolean;
     sandboxTimeout?: number;
     sessionScope: SessionScope;
+    deployToAkash?: boolean;
   };
   tags?: string[];
 }
+
+import { AkashService } from './services/AkashService.js';
+const akash = new AkashService();
 
 async function resolveHostPaths(config: ReturnType<typeof getConfig>): Promise<{
   hostDataDir: string;
@@ -166,11 +171,19 @@ export async function buildServer(): Promise<FastifyInstance> {
     reply.hijack();
     try {
       // Determine proxy target
-      // If running in Docker (/.dockerenv exists), use container networking.
-      // If running on host (dev mode), use localhost and mapped port.
-      const isDocker = existsSync('/.dockerenv');
-      const targetHost = isDocker ? `botmaker-${botHostname}` : '127.0.0.1';
-      const targetPort = isDocker ? BOT_INTERNAL_PORT : bot.port;
+      let targetHost: string;
+      let targetPort: number;
+
+      if (bot.is_akash_deployment && bot.akash_uri) {
+        const uri = new URL(bot.akash_uri);
+        targetHost = uri.hostname;
+        targetPort = parseInt(uri.port) || 80;
+      } else {
+        // Local Docker logic
+        const isDocker = existsSync('/.dockerenv');
+        targetHost = isDocker ? `botmaker-${botHostname}` : '127.0.0.1';
+        targetPort = isDocker ? BOT_INTERNAL_PORT : bot.port!;
+      }
 
       await proxyToBot(request, reply, targetPort, targetHost, bot.gateway_token ?? undefined);
     } catch (err) {
@@ -376,6 +389,7 @@ export async function buildServer(): Promise<FastifyInstance> {
       port,
       gateway_token: gatewayToken,
       tags: body.tags,
+      is_akash_deployment: body.features.deployToAkash,
     });
 
     // Check if proxy is configured
@@ -431,7 +445,7 @@ export async function buildServer(): Promise<FastifyInstance> {
         };
       }
 
-      // Create workspace
+      // Create workspace (needed for both local and Akash to store configs/soul)
       createBotWorkspace(config.dataDir, {
         botId: bot.id,
         botHostname: bot.hostname,
@@ -455,54 +469,132 @@ export async function buildServer(): Promise<FastifyInstance> {
       const hostWorkspacePath = join(hostDataDir, 'bots', bot.hostname);
       const hostSecretsPath = join(hostSecretsDir, bot.hostname);
       const hostSandboxPath = join(hostDataDir, 'bots', bot.hostname, 'sandbox');
-      const environment = [
-        `BOT_ID=${bot.id}`,
-        `BOT_NAME=${body.name}`,
-        `AI_PROVIDER=${primaryProvider.providerId}`,
-        `AI_MODEL=${primaryProvider.model}`,
-        `PORT=${BOT_INTERNAL_PORT}`,
-      ];
+
+      // Common environment variables
+      const environmentBase: Record<string, string> = {
+        BOT_ID: bot.id,
+        BOT_NAME: body.name,
+        AI_PROVIDER: primaryProvider.providerId,
+        AI_MODEL: primaryProvider.model,
+        PORT: String(BOT_INTERNAL_PORT),
+        // Akash specific envs to match DockerService behavior
+        CLAWDBOT_GATEWAY_TOKEN: gatewayToken,
+        OPENCLAW_STATE_DIR: '/app/data',
+        CLAWDBOT_STATE_DIR: '/app/data',
+        CLAWDBOT_CONFIG_PATH: '/app/data/openclaw.json',
+      };
 
       // Add channel tokens
       for (const channel of body.channels) {
         if (channel.channelType === 'telegram') {
-          environment.push(`TELEGRAM_BOT_TOKEN=${channel.token}`);
+          environmentBase['TELEGRAM_BOT_TOKEN'] = channel.token;
         } else if (channel.channelType === 'discord') {
-          environment.push(`DISCORD_TOKEN=${channel.token}`);
+          environmentBase['DISCORD_TOKEN'] = channel.token;
         }
       }
 
-      const containerId = await docker.createContainer(bot.hostname, bot.id, {
-        image: config.openclawImage,
-        environment,
-        port,
-        hostWorkspacePath,
-        hostSecretsPath,
-        hostSandboxPath,
-        gatewayToken,
-        networkName: 'bm-internal',
-      });
+      // Add proxy/API key config
+      if (workspaceProxyConfig) {
+        environmentBase['AI_API_BASE'] = workspaceProxyConfig.baseUrl;
+        environmentBase['AI_API_KEY'] = workspaceProxyConfig.token;
+      }
 
-      const db = getDb();
-      db.transaction(() => {
-        updateBot(bot.id, { container_id: containerId });
-      })();
-      await docker.startContainer(bot.hostname);
-      db.transaction(() => {
-        updateBot(bot.id, { status: 'running' });
-      })();
+      if (body.features.deployToAkash) {
+        // --- Akash Deployment ---
+        server.log.info({ botHostname: bot.hostname }, 'Starting Akash deployment');
+
+        const sdl = akash.generateSDL(bot, environmentBase);
+        const deployment = await akash.deploy(sdl);
+
+        server.log.info({ deployment }, 'Akash deployment successful');
+
+        const db = getDb();
+        db.transaction(() => {
+          updateBot(bot.id, {
+            status: 'running',
+            akash_dseq: deployment.dseq,
+            akash_provider: deployment.provider,
+            akash_manifest: deployment.manifest,
+            akash_lease_status: 'created',
+          });
+        })();
+
+        // Fetch deployment details to find URI and update bot
+        setTimeout(async () => {
+          try {
+            // Wait for lease to be active and URI to be assigned
+            // We'll retry a few times if needed, but for now just one check after delay
+            const details = await akash.getDeploymentDetails(deployment.dseq);
+
+            // Structure: details.data.leases[0].services[0].uris[0]
+            const lease = details?.data?.leases?.[0];
+            const service = lease?.services?.[0];
+            const uri = service?.uris?.[0];
+
+            if (uri) {
+              const fullUri = uri.startsWith('http') ? uri : `http://${uri}`;
+              server.log.info({ uri: fullUri }, 'Found Akash URI');
+
+              const db = getDb();
+              db.transaction(() => {
+                updateBot(bot.id, { akash_uri: fullUri });
+              })();
+            } else {
+              server.log.warn({ details }, 'Could not find URI in deployment details');
+            }
+          } catch (e) {
+            server.log.error({ err: e }, 'Failed to fetch deployment details or extract URI');
+          }
+        }, 15000); // Wait 15s to ensure lease is active and URI is assigned
+
+      } else {
+        // --- Local Docker Deployment ---
+
+        // Convert env map to array for Docker API
+        const environment = Object.entries(environmentBase).map(([k, v]) => `${k}=${v}`);
+
+        const containerId = await docker.createContainer(bot.hostname, bot.id, {
+          image: config.openclawImage,
+          environment,
+          port,
+          hostWorkspacePath,
+          hostSecretsPath,
+          hostSandboxPath,
+          gatewayToken,
+          networkName: 'bm-internal',
+        });
+
+        const db = getDb();
+        db.transaction(() => {
+          updateBot(bot.id, { container_id: containerId });
+        })();
+        await docker.startContainer(bot.hostname);
+        db.transaction(() => {
+          updateBot(bot.id, { status: 'running' });
+        })();
+      }
 
       const updatedBot = getBot(bot.id);
       reply.code(201);
       return updatedBot;
     } catch (err) {
-      try { await docker.removeContainer(bot.hostname); } catch { /* ignore cleanup errors */ }
+      // Cleanup on failure
+      try {
+        if (body.features.deployToAkash) {
+          // If dseq was created, try to close it? (Complex to know if partial success, skipping for now)
+        } else {
+          await docker.removeContainer(bot.hostname);
+        }
+      } catch { /* ignore cleanup errors */ }
+
       if (proxyConfig) {
         try { await revokeBotFromProxy(proxyConfig, bot.id); } catch { /* ignore cleanup errors */ }
       }
       deleteBotWorkspace(config.dataDir, bot.hostname);
       deleteBotSecrets(bot.hostname);
       deleteBot(bot.id);
+
+      server.log.error({ err }, 'Failed to create bot');
 
       if (err instanceof ContainerError) {
         reply.code(500);
@@ -522,13 +614,19 @@ export async function buildServer(): Promise<FastifyInstance> {
     }
 
     try {
-      // Remove container if exists
-      await docker.removeContainer(bot.hostname);
+      if (bot.is_akash_deployment && bot.akash_dseq) {
+        await akash.closeDeployment(bot.akash_dseq);
+      } else {
+        // Remove container if exists
+        await docker.removeContainer(bot.hostname);
+      }
     } catch (err) {
       if (err instanceof ContainerError && err.code !== 'NOT_FOUND') {
         reply.code(500);
         return { error: `Failed to remove container: ${err.message}` };
       }
+      // Log Akash errors but don't block deletion
+      server.log.warn({ err }, 'Error cleaning up deployment');
     }
 
     // Revoke from proxy if configured

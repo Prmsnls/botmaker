@@ -9,6 +9,7 @@ import './Page3Toggles.css';
 const POPULAR_PROVIDERS = ['openai', 'anthropic', 'venice'];
 
 export function Page3Toggles() {
+  console.log('Rendering Page3Toggles with Akash option');
   const { state, dispatch } = useWizard();
   const [showAllProviders, setShowAllProviders] = useState(false);
   const [showAllChannels, setShowAllChannels] = useState(false);
@@ -24,7 +25,7 @@ export function Page3Toggles() {
     dispatch({ type: 'TOGGLE_CHANNEL', channelId });
   };
 
-  const handleFeatureChange = (feature: 'commands' | 'tts' | 'sandbox', value: boolean) => {
+  const handleFeatureChange = (feature: 'commands' | 'tts' | 'sandbox' | 'deployToAkash', value: boolean) => {
     dispatch({ type: 'SET_FEATURE', feature, value });
   };
 
@@ -143,10 +144,17 @@ export function Page3Toggles() {
           />
           <FeatureCheckbox
             id="feature-sandbox"
-            label="Sandbox mode"
+            label="Sandbox Mode TEST"
             hint="Isolated environment for testing"
             checked={state.features.sandbox}
             onChange={(checked) => { handleFeatureChange('sandbox', checked); }}
+          />
+          <FeatureCheckbox
+            id="feature-akash"
+            label="Deploy to Akash"
+            hint="Run on decentralized cloud (persistent)"
+            checked={state.features.deployToAkash}
+            onChange={(checked) => { handleFeatureChange('deployToAkash', checked); }}
           />
         </div>
 

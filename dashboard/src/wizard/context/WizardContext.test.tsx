@@ -132,7 +132,7 @@ describe('WizardContext', () => {
         enabledProviders: [],
         enabledChannels: [],
         routingTags: [],
-        features: { commands: true, tts: false, ttsVoice: 'alloy', sandbox: false, sandboxTimeout: 30, sessionScope: 'user' as const },
+        features: { commands: true, tts: false, ttsVoice: 'alloy', sandbox: false, sandboxTimeout: 30, sessionScope: 'user' as const, deployToAkash: false },
         providerConfigs: {},
         channelConfigs: {},
       };
@@ -152,7 +152,7 @@ describe('WizardContext', () => {
         enabledProviders: [],
         enabledChannels: [],
         routingTags: [],
-        features: { commands: true, tts: false, ttsVoice: 'alloy', sandbox: false, sandboxTimeout: 30, sessionScope: 'user' as const },
+        features: { commands: true, tts: false, ttsVoice: 'alloy', sandbox: false, sandboxTimeout: 30, sessionScope: 'user' as const, deployToAkash: false },
         providerConfigs: {},
         channelConfigs: {},
       };
@@ -173,7 +173,7 @@ describe('WizardContext', () => {
         enabledProviders: [],
         enabledChannels: [],
         routingTags: [],
-        features: { commands: true, tts: false, ttsVoice: 'alloy', sandbox: false, sandboxTimeout: 30, sessionScope: 'user' as const },
+        features: { commands: true, tts: false, ttsVoice: 'alloy', sandbox: false, sandboxTimeout: 30, sessionScope: 'user' as const, deployToAkash: false },
         providerConfigs: {},
         channelConfigs: {},
       };
@@ -194,7 +194,7 @@ describe('WizardContext', () => {
         enabledProviders: [],
         enabledChannels: [],
         routingTags: [],
-        features: { commands: true, tts: false, ttsVoice: 'alloy', sandbox: false, sandboxTimeout: 30, sessionScope: 'user' as const },
+        features: { commands: true, tts: false, ttsVoice: 'alloy', sandbox: false, sandboxTimeout: 30, sessionScope: 'user' as const, deployToAkash: false },
         providerConfigs: {},
         channelConfigs: {},
       };
@@ -215,7 +215,7 @@ describe('WizardContext', () => {
         enabledProviders: ['openai'],
         enabledChannels: ['telegram'],
         routingTags: [],
-        features: { commands: true, tts: false, ttsVoice: 'alloy', sandbox: false, sandboxTimeout: 30, sessionScope: 'user' as const },
+        features: { commands: true, tts: false, ttsVoice: 'alloy', sandbox: false, sandboxTimeout: 30, sessionScope: 'user' as const, deployToAkash: false },
         providerConfigs: { openai: { model: 'gpt-4' } },
         channelConfigs: { telegram: { token: '' } },
       };
@@ -239,7 +239,7 @@ describe('WizardContext', () => {
         enabledProviders: ['openai'],
         enabledChannels: ['telegram'],
         routingTags: [],
-        features: { commands: true, tts: false, ttsVoice: 'alloy', sandbox: false, sandboxTimeout: 30, sessionScope: 'user' as const },
+        features: { commands: true, tts: false, ttsVoice: 'alloy', sandbox: false, sandboxTimeout: 30, sessionScope: 'user' as const, deployToAkash: false },
         providerConfigs: { openai: { model: 'gpt-4' } },
         channelConfigs: { telegram: { token: 'tg-token' } },
       };

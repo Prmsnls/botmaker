@@ -63,6 +63,7 @@ export interface WizardFeatures {
   sandbox: boolean;
   sandboxTimeout?: number;
   sessionScope: SessionScope;
+  deployToAkash?: boolean;
 }
 
 export interface ProviderConfigInput {
